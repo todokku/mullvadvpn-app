@@ -117,14 +117,8 @@ export default {
   confirm_no_email_background: Styles.createViewStyle({
     flex: 1,
     justifyContent: 'center',
-    paddingLeft: 14,
-    paddingRight: 14,
   }),
-  confirm_no_email_dialog: Styles.createViewStyle({
-    backgroundColor: colors.darkBlue,
-    borderRadius: 11,
-    padding: 16,
-  }),
+  confirm_no_email_dialog: Styles.createViewStyle({}),
   confirm_no_email_warning: Styles.createTextStyle({
     fontFamily: 'Open Sans',
     fontSize: 16,
