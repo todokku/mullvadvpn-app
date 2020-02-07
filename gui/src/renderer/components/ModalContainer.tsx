@@ -3,10 +3,9 @@ import ModalAlert from './ModalAlert';
 import ModalTransitionContainer from './ModalTransitionContainer';
 
 type ModalAlertProps = ModalAlert['props'];
-type ChildElement = React.ReactElement<ModalAlertProps> | undefined;
 
 interface IProps {
-  children?: ChildElement | ChildElement[];
+  children?: React.ReactNode;
 }
 
 export default class ModalContainer extends React.Component<IProps> {
@@ -15,10 +14,12 @@ export default class ModalContainer extends React.Component<IProps> {
     const contents: React.ReactChild[] = [];
 
     React.Children.forEach(this.props.children, (child) => {
-      if (child && typeof child === 'object' && child.props.alertId) {
-        alerts.push(child);
+      const element = child as React.ReactElement<ModalAlertProps>;
+
+      if (child && typeof child === 'object' && element.props.alertId) {
+        alerts.push(element);
       } else {
-        contents.push(child);
+        contents.push(element);
       }
     });
 
