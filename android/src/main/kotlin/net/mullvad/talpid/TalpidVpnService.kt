@@ -28,7 +28,7 @@ open class TalpidVpnService : VpnService() {
                 addRoute(route.address, route.prefixLength.toInt())
             }
 
-            setMtu(config.mtu)
+            setMtu(800)
             setBlocking(false)
         }
 
