@@ -12,6 +12,14 @@ import MapKit
 import NetworkExtension
 import os
 
+class CustomOverlayRenderer: MKOverlayRenderer {
+    override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
+        let drawRect = self.rect(for: mapRect)
+        context.setFillColor(UIColor.secondaryColor.cgColor)
+        context.fill(drawRect)
+    }
+}
+
 class ConnectViewController: UIViewController, RootContainment, TunnelControlViewControllerDelegate, MKMapViewDelegate {
 
     @IBOutlet var secureLabel: UILabel!
@@ -49,24 +57,45 @@ class ConnectViewController: UIViewController, RootContainment, TunnelControlVie
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
         if let polygon = overlay as? MKPolygon {
             let renderer = MKPolygonRenderer(polygon: polygon)
-            renderer.fillColor = UIColor.secondaryColor
-            renderer.strokeColor = UIColor.black
-            renderer.lineWidth = 2.0
+            renderer.shouldRasterize = true
+            renderer.fillColor = UIColor.primaryColor
+            renderer.strokeColor = UIColor.secondaryColor
+            renderer.lineWidth = 1.0
+            renderer.lineCap = .round
+            renderer.lineJoin = .round
             return renderer
         }
 
         if let multiPolygon = overlay as? MKMultiPolygon {
             let renderer = MKMultiPolygonRenderer(multiPolygon: multiPolygon)
-            renderer.fillColor = UIColor.secondaryColor
-            renderer.strokeColor = UIColor.black
-            renderer.lineWidth = 2.0
+            renderer.shouldRasterize = true
+            renderer.fillColor = UIColor.primaryColor
+            renderer.strokeColor = UIColor.secondaryColor
+            renderer.lineWidth = 1.0
+            renderer.lineCap = .round
+            renderer.lineJoin = .round
             return renderer
         }
 
+        if let tileOverlay = overlay as? MKTileOverlay {
+            return CustomOverlayRenderer(overlay: tileOverlay)
+        }
+        
         return MKOverlayRenderer(overlay: overlay)
     }
 
-    private func loadMapData() {
+    private func addTileOverlay() {
+        // Use `nil` for template URL to make sure that Apple maps do not load
+        // tiles from remote.
+        let tileOverlay = MKTileOverlay(urlTemplate: nil)
+
+        // Replace the default map tiles
+        tileOverlay.canReplaceMapContent = true
+
+        mapView.addOverlay(tileOverlay)
+    }
+
+    private func loadGeoJSONData() {
         let decoder = MKGeoJSONDecoder()
 
         let geoJSONURL = Bundle.main.url(forResource: "countries.geo", withExtension: "json")!
@@ -83,10 +112,20 @@ class ConnectViewController: UIViewController, RootContainment, TunnelControlVie
         }
     }
 
+    private func hideMapsAttributions() {
+        let logoView = mapView.subviews.first { $0.description.starts(with: "<MKAppleLogoImageView") }
+        let legalLink = mapView.subviews.first { $0.description.starts(with: "<MKAttributionLabel") }
+
+        logoView?.isHidden = true
+        legalLink?.isHidden = true
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        loadMapData()
+        addTileOverlay()
+        loadGeoJSONData()
+        hideMapsAttributions()
 
         connectionPanel.collapseButton.addTarget(self, action: #selector(handleConnectionPanelButton(_:)), for: .touchUpInside)
 
