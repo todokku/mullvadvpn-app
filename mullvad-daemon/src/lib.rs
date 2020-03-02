@@ -54,9 +54,10 @@ use std::{
     thread,
     time::Duration,
 };
+#[cfg(target_os = "linux")]
+use talpid_core::split;
 use talpid_core::{
     mpsc::Sender,
-    split,
     tunnel_state_machine::{self, TunnelCommand, TunnelParametersGenerator},
 };
 #[cfg(target_os = "android")]
@@ -97,6 +98,7 @@ pub enum Error {
     #[error(display = "Unable to load account history with wireguard key cache")]
     LoadAccountHistory(#[error(source)] account_history::Error),
 
+    #[cfg(target_os = "linux")]
     #[error(display = "Unable to initialize split tunneling")]
     InitSplitTunneling(#[error(source)] split::Error),
 
@@ -218,16 +220,16 @@ pub enum DaemonCommand {
     #[cfg(not(target_os = "android"))]
     FactoryReset(oneshot::Sender<()>),
     /// Request list of processes excluded from the tunnel
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     GetSplitTunnelProcesses(oneshot::Sender<Vec<i32>>),
     /// Exclude traffic of a process (PID) from the tunnel
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     AddSplitTunnelProcess(oneshot::Sender<()>, i32),
     /// Remove process (PID) from list of processes excluded from the tunnel
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     RemoveSplitTunnelProcess(oneshot::Sender<()>, i32),
     /// Clear list of processes excluded from the tunnel
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     ClearSplitTunnelProcesses(oneshot::Sender<()>),
     /// Makes the daemon exit the main loop and quit.
     Shutdown,
@@ -448,6 +450,7 @@ pub struct Daemon<L: EventListener> {
     tunnel_state: TunnelState,
     target_state: TargetState,
     state: DaemonExecutionState,
+    #[cfg(target_os = "linux")]
     exclude_pids: split::PidManager,
     rx: Wait<UnboundedReceiver<InternalDaemonEvent>>,
     tx: DaemonEventSender,
@@ -600,6 +603,7 @@ where
             tunnel_state: TunnelState::Disconnected,
             target_state: initial_target_state,
             state: DaemonExecutionState::Running,
+            #[cfg(target_os = "linux")]
             exclude_pids: split::PidManager::new().map_err(Error::InitSplitTunneling)?,
             rx: internal_event_rx.wait(),
             tx: internal_event_tx,
@@ -1007,13 +1011,13 @@ where
             GetCurrentVersion(tx) => self.on_get_current_version(tx),
             #[cfg(not(target_os = "android"))]
             FactoryReset(tx) => self.on_factory_reset(tx),
-            #[cfg(unix)]
+            #[cfg(target_os = "linux")]
             GetSplitTunnelProcesses(tx) => self.on_get_split_tunnel_processes(tx),
-            #[cfg(unix)]
+            #[cfg(target_os = "linux")]
             AddSplitTunnelProcess(tx, pid) => self.on_add_split_tunnel_process(tx, pid),
-            #[cfg(unix)]
+            #[cfg(target_os = "linux")]
             RemoveSplitTunnelProcess(tx, pid) => self.on_remove_split_tunnel_process(tx, pid),
-            #[cfg(unix)]
+            #[cfg(target_os = "linux")]
             ClearSplitTunnelProcesses(tx) => self.on_clear_split_tunnel_processes(tx),
             Shutdown => self.trigger_shutdown_event(),
             PrepareRestart => self.on_prepare_restart(),
@@ -1374,7 +1378,7 @@ where
         }));
     }
 
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     fn on_get_split_tunnel_processes(&mut self, tx: oneshot::Sender<Vec<i32>>) {
         match self.exclude_pids.list() {
             Ok(pids) => Self::oneshot_send(tx, pids, "get_split_tunnel_processes response"),
@@ -1382,7 +1386,7 @@ where
         }
     }
 
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     fn on_add_split_tunnel_process(&mut self, tx: oneshot::Sender<()>, pid: i32) {
         match self.exclude_pids.add(pid) {
             Ok(()) => Self::oneshot_send(tx, (), "add_split_tunnel_process response"),
@@ -1390,7 +1394,7 @@ where
         }
     }
 
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     fn on_remove_split_tunnel_process(&mut self, tx: oneshot::Sender<()>, pid: i32) {
         match self.exclude_pids.remove(pid) {
             Ok(()) => Self::oneshot_send(tx, (), "remove_split_tunnel_process response"),
@@ -1398,7 +1402,7 @@ where
         }
     }
 
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     fn on_clear_split_tunnel_processes(&mut self, tx: oneshot::Sender<()>) {
         match self.exclude_pids.clear() {
             Ok(()) => Self::oneshot_send(tx, (), "clear_split_tunnel_processes response"),
