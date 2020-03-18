@@ -64,7 +64,7 @@ fn run() -> Result<void::Void, Error> {
     }
     let program = CString::new(program.unwrap().as_bytes()).unwrap();
 
-    let mut args_iter = env::args_os().skip(1);
+    let args_iter = env::args_os().skip(1);
     let args: Vec<CString> = args_iter
         .map(|arg| CString::new(arg.as_bytes()).unwrap())
         .collect();
