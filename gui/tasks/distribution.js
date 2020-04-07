@@ -44,6 +44,7 @@ const config = {
       LSUIElement: true,
       NSUserNotificationAlertStyle: 'alert',
     },
+    entitlements: distAssets('mac-entitlements.plist'),
     extraResources: [
       { from: distAssets('mullvad'), to: '.' },
       { from: distAssets('mullvad-problem-report'), to: '.' },
